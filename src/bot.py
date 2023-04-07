@@ -1,28 +1,18 @@
 import asyncio
-import logging
-import os
 
-from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters.command import Command
+from aiogram import Bot, Dispatcher
+from handlers import filter_data
 
-load_dotenv('.env')
-
-logging.basicConfig(level=logging.INFO)
-
-bot = Bot(token=os.getenv('BOT_TOKEN'))
-
-dp = Dispatcher()
+from src.config import config
 
 
-# Хэндлер на команду /start
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer("Hello!")
-
-
-# Запуск процесса поллинга новых апдейтов
 async def main():
+    bot = Bot(token=config.bot_token.get_secret_value())
+    dp = Dispatcher()
+
+    dp.include_router(filter_data.router)
+
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 
