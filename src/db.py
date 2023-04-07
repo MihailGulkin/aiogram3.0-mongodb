@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 from bson.json_util import dumps
-from dateutil.relativedelta import relativedelta
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.server_api import ServerApi
@@ -17,59 +16,39 @@ async def aggregate_data(dt_from, dt_upto, group_type):
     db = client['sampleDB']
     collection = db['sample_collection']
     pipeline = [
-        {"$match": {"dt": {"$gte": dt_from, "$lte": dt_upto}}},
-        {"$group": {
-            "_id": {
-                "year": {"$year": "$dt"},
-                "month": {"$month": "$dt"},
-                "day": {"$dayOfMonth": "$dt"}
-            },
-            "total": {"$sum": "$value"}
-        }},
-        {"$sort": {"_id.year": 1, "_id.month": 1, "_id.day": 1}},
-        {"$project": {
-            "total": 1,
-            "date": {"$dateFromParts": {
-                "year": "$_id.year",
-                "month": "$_id.month",
-                "day": "$_id.day",
-                "hour": 0,
-                "minute": 0,
-                "second": 0,
-                "millisecond": 0
-            }}
-        }}
+        {
+            "$match": {
+                "dt": {"$gte": dt_from, "$lte": dt_upto}
+            }
+        },
+        {
+            "$group": {
+                "_id": {"month": {"$month": '$dt'}},
+                "total_amount": {"$sum": "$value"},
+                'date': {"$first": "$dt"}
+            }
+        },
+        {
+            '$sort': {
+                '_id': 1
+            }
+        }
     ]
-    # if group_type == 'day':
-    #     pipeline[1]['$group']['_id'] = {
-    #         '$dateToString': {'format': f"%Y-%m-%dT00:00:00.000Z",
-    #                           'date': '$dt'}}
-    # elif group_type == 'hour':
-    #     pipeline[1]['$group']['_id'] = {
-    #         '$dateToString': {'format': f"%Y-%m-%dT%H:00:00.000Z",
-    #                           'date': '$dt'}}
 
-    if group_type == "hour":
-        pipeline[1]["$group"]["_id"]["hour"] = {"$hour": "$dt"}
-        pipeline[3]["$project"]["date"]["hour"] = "$_id.hour"
-    elif group_type == "day":
-        pipeline[1]["$group"]["_id"].pop("day")
-    elif group_type == "month":
-        pipeline[1]["$group"]["_id"].pop("day")
+    result = await collection.aggregate(pipeline).to_list(length=None)
+    dataset = [value['total_amount'] for value in result]
+    labels = [value['date'].isoformat() for value in result]
+    print({'dataset': dataset, 'labels': labels})
 
-    cursor = collection.aggregate(pipeline)
 
-    async for doc in cursor:
-        print(doc)
 async def main():
     # задать временной диапазон для фильтрации
     dt_from = datetime.datetime.fromisoformat("2022-09-01T00:00:00")
     dt_upto = datetime.datetime.fromisoformat("2022-12-31T23:59:00")
     group_type = 'month'
-    # создать словарь-фильтр
-
+    # [8177, 8407, 4868, 7706, 8353, 7143, 6062, 11800, 4077, 8820, 4788, 11045, 13048, 2729, 4038, 9888, 7490, 11644, 11232, 12177, 2741, 5341, 8730, 4718, 0]
+    # [8177, 8407, 4868, 7706, 8353, 7143, 6062, 11800, 4077, 8820, 4788, 11045, 13048, 2729, 4038, 9888, 7490, 11644, 11232, 12177, 2741, 5341, 8730, 4718]
     await aggregate_data(dt_from, dt_upto, group_type)
-
 
 
 asyncio.run(main())
