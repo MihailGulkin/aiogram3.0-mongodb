@@ -1,13 +1,17 @@
+from dotenv import load_dotenv
 from pydantic import BaseSettings, SecretStr
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
-    bot_token: SecretStr
-    mongo_db_url: SecretStr
+    BOT_TOKEN: SecretStr
+    MONGO_DB_URL: SecretStr
 
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
 
 
-config = Settings()
+def get_settings() -> Settings:
+    return Settings()
