@@ -1,0 +1,1 @@
+from .base_salary_usecase import BaseSalaryUseCase

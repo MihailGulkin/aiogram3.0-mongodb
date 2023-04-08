@@ -7,7 +7,8 @@ from aiogram.filters.command import Command
 
 from src.domain.const.error import ERROR_MESSAGE
 from src.domain.dto.query import AggregateQuery
-from src.domain.interfaces.base_repo import BaseSalaryAggregateRepository
+
+from src.domain.interfaces.usecase import BaseSalaryUseCase
 
 router = Router()
 
@@ -20,13 +21,15 @@ async def cmd_start(message: types.Message):
 @router.message(F.text)
 async def aggregate_salary(
         message: types.Message,
-        salary_repo: BaseSalaryAggregateRepository
+        salary_usecase: BaseSalaryUseCase
 ) -> None:
     try:
         json_object = json.loads(message.text)
-        print(await salary_repo.aggregate_salary())
-        obj = AggregateQuery(**json_object)
-        print(obj)
+
+        salary = await salary_usecase(
+            AggregateQuery(**json_object)
+        )
+        await message.answer(str(salary.dict()))
     except TypeError:
         await message.answer(ERROR_MESSAGE)
     except json.decoder.JSONDecodeError:

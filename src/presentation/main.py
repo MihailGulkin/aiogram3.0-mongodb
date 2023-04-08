@@ -3,8 +3,11 @@ import logging
 
 from aiogram import Bot, Dispatcher
 
-from src.infrastracture.db.main import create_mongo_client
-from src.infrastracture.db.middleware import SalaryRepositoriesMiddleware
+from src.infrastracture.adapters.db.main import create_mongo_client
+from src.infrastracture.adapters.db.middleware import (
+    SalaryRepositoriesMiddleware
+)
+from src.presentation.di.providers.services import get_salary_usecase
 
 from src.presentation.handlers import salary_router
 from src.config import get_settings
@@ -21,7 +24,10 @@ async def main():
 
     dp = Dispatcher()
 
-    dp.update.middleware(SalaryRepositoriesMiddleware(client=client))
+    dp.update.middleware(
+        SalaryRepositoriesMiddleware(
+            salary_usecase=get_salary_usecase(client=client))
+    )
     dp.include_router(salary_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
