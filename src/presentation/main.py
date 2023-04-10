@@ -4,12 +4,11 @@ import logging
 from aiogram import Bot, Dispatcher
 
 from src.infrastracture.adapters.db.main import create_mongo_client
-from src.infrastracture.adapters.db.middleware import (
-    SalaryRepositoriesMiddleware
-)
-from src.presentation.di.providers.services import get_salary_usecase
 
+from src.presentation.di.container import container
+from src.presentation.di.providers.services import get_salary_usecase
 from src.presentation.handlers import salary_router
+
 from src.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -18,15 +17,21 @@ logger = logging.getLogger(__name__)
 async def main():
     config = get_settings()
 
-    client = create_mongo_client(config.MONGO_DB_URL.get_secret_value())
-
     bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 
+    client = create_mongo_client(config.MONGO_DB_URL.get_secret_value())
+
+    container.container.register(
+        get_salary_usecase,
+        instance=client
+    )
     dp = Dispatcher()
 
+    from src.presentation.middleware import (
+        SalaryRepositoriesMiddleware
+    )
     dp.update.middleware(
-        SalaryRepositoriesMiddleware(
-            salary_usecase=get_salary_usecase(client=client))
+        SalaryRepositoriesMiddleware()
     )
     dp.include_router(salary_router)
 

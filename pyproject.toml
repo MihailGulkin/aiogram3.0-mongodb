@@ -10,6 +10,7 @@ python = "^3.10"
 python-dotenv = "^1.0.0"
 aiogram = {url = "https://github.com/aiogram/aiogram/archive/refs/heads/dev-3.x.zip"}
 motor = "^3.1.2"
+punq = "^0.6.2"
 
 
 [build-system]
